@@ -4,6 +4,17 @@ use Illuminate\Support\Facades\Route;
 
 // Public Routes (Masyarakat) - Tanpa Login
 Route::livewire('/', 'public.landing')->name('landing');
+Route::livewire('/profil', 'public.profil')->name('profil');
+Route::livewire('/layanan', 'public.layanan')->name('layanan');
+Route::livewire('/berita', 'public.berita')->name('berita');
+Route::livewire('/galeri', 'public.galeri')->name('galeri');
+Route::livewire('/galeri/{eventId}', 'public.galeri')->name('galeri.event');
+Route::livewire('/donasi', 'public.donasi')->name('donasi');
+Route::livewire('/history-bencana', 'public.disaster-history')->name('public.disaster-history');
+Route::livewire('/history-bencana/{id}', 'public.disaster-history-show')->name('public.disaster-history-show');
+Route::livewire('/video', 'public.video.index')->name('video.index');
+Route::livewire('/video/{id}', 'public.video.show')->name('video.show');
+Route::livewire('/belajar-bisindo', 'public.belajar-bisindo')->name('belajar-bisindo');
 Route::livewire('/login', 'public.login')->name('login');
 Route::get('/logout', function () {
     auth()->logout();
@@ -16,6 +27,9 @@ Route::livewire('/request-bantuan', 'public.public-request')->name('public-reque
 // Admin Routes (Internal) - Harus Login & Role Admin
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::livewire('/dashboard', 'admin.dashboard')->name('dashboard');
+
+    Route::livewire('/disaster-events', 'admin.disaster-event.index')->name('admin.disaster-events.index');
+    Route::livewire('/disaster-events/history', 'admin.disaster-event.history')->name('admin.disaster-events.history');
     
     // Donatur
     Route::livewire('/donatur', 'admin.donatur.index')->name('donatur.index');
@@ -51,6 +65,21 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::livewire('/user', 'admin.user.index')->name('user.index');
     Route::livewire('/user/create', 'admin.user.create')->name('user.create');
     Route::livewire('/user/edit/{id}', 'admin.user.edit')->name('user.edit');
+
+    Route::livewire('/settings', 'admin.settings.index')->name('settings.index');
+    Route::livewire('/settings/profil', 'admin.settings.profil')->name('settings.profil');
+    Route::livewire('/settings/layanan', 'admin.settings.layanan')->name('settings.layanan');
+    Route::livewire('/settings/berita', 'admin.settings.berita')->name('settings.berita');
+    Route::livewire('/settings/galeri', 'admin.settings.galeri')->name('settings.galeri');
+    Route::livewire('/settings/donasi', 'admin.settings.donasi')->name('settings.donasi');
+
+    Route::livewire('/admin/video', 'admin.video.index')->name('admin.video.index');
+    Route::livewire('/admin/video/create', 'admin.video.create')->name('admin.video.create');
+    Route::livewire('/admin/video/edit/{id}', 'admin.video.edit')->name('admin.video.edit');
+
+    Route::livewire('/admin/bisindo', 'admin.bisindo.index')->name('admin.bisindo.index');
+    Route::livewire('/admin/bisindo/create', 'admin.bisindo.create')->name('admin.bisindo.create');
+    Route::livewire('/admin/bisindo/edit/{id}', 'admin.bisindo.edit')->name('admin.bisindo.edit');
 
     Route::livewire('/admin/bantuan-request', 'admin.bantuan-request.index')->name('bantuan-request.index');
 });

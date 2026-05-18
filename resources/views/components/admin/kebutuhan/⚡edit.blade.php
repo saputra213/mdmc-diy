@@ -2,6 +2,7 @@
 
 use Livewire\Component;
 use App\Models\Kebutuhan;
+use App\Models\DisasterEvent;
 
 new class extends Component
 {
@@ -11,10 +12,20 @@ new class extends Component
     public $nama_barang;
     public $butuh_barang;
     public $status;
+    public $event;
 
     public function mount($id)
     {
         $this->kebutuhan = Kebutuhan::findOrFail($id);
+        $this->event = DisasterEvent::find($this->kebutuhan->disaster_event_id);
+
+        $selected = session('admin_disaster_event_id');
+        if ($selected && (int) $selected !== (int) $this->kebutuhan->disaster_event_id) {
+            session()->flash('error', 'Data ini milik event berbeda. Silakan pilih event yang sesuai di filter.');
+            $this->redirect('/kebutuhan', navigate: true);
+            return;
+        }
+
         $this->nama_lokasi = $this->kebutuhan->nama_lokasi;
         $this->jumlah_korban = $this->kebutuhan->jumlah_korban;
         $this->nama_barang = $this->kebutuhan->nama_barang;
@@ -31,6 +42,12 @@ new class extends Component
             'butuh_barang' => 'required|numeric',
         ]);
 
+        $event = DisasterEvent::find($this->kebutuhan->disaster_event_id);
+        if (!$event || $event->status !== 'active') {
+            session()->flash('error', 'Tidak bisa mengubah data karena event sudah diarsipkan atau tidak ditemukan.');
+            return;
+        }
+
         $this->kebutuhan->update([
             'nama_lokasi' => $this->nama_lokasi,
             'jumlah_korban' => $this->jumlah_korban,
@@ -42,14 +59,14 @@ new class extends Component
         // Visual Feedback for Deaf Users
         $this->dispatch('visual-feedback', message: 'Data Kebutuhan Berhasil Diperbarui!');
 
-        return $this->redirect('/admin/kebutuhan', navigate: true);
+        return $this->redirect('/kebutuhan', navigate: true);
     }
 };
 ?>
 
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="flex items-center gap-4">
-        <a href="/admin/kebutuhan" wire:navigate class="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+        <a href="/kebutuhan" wire:navigate class="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
         <div>
@@ -57,6 +74,18 @@ new class extends Component
             <p class="text-slate-500 text-sm">Perbarui data kebutuhan logistik.</p>
         </div>
     </div>
+
+    @if (session()->has('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($event)
+        <div class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold shadow-sm">
+            Event: <span class="font-extrabold">{{ $event->name }}</span>
+        </div>
+    @endif
 
     <form wire:submit="save" class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -98,7 +127,7 @@ new class extends Component
         </div>
 
         <div class="pt-4">
-            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2">
+            <button type="submit" class="w-full bg-mdmc-700 hover:bg-mdmc-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-mdmc-100 transition-all flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 Simpan Perubahan
             </button>

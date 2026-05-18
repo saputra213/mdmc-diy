@@ -1,11 +1,15 @@
 <?php
 use Livewire\Component;
 use App\Models\BantuanRequest;
+use App\Models\DisasterEvent;
 use App\Models\Setting;
 use Livewire\Attributes\Validate;
 use Illuminate\Support\Facades\RateLimiter;
 
 new class extends Component {
+    #[Validate('required|integer')]
+    public $disaster_event_id;
+
     #[Validate('required|min:3')]
     public $nama_pelapor;
 
@@ -23,9 +27,19 @@ new class extends Component {
 
     public $success = false;
 
+    public function mount(): void
+    {
+        $event = DisasterEvent::active()->orderByDesc('updated_at')->first();
+        $this->disaster_event_id = $event?->id;
+    }
+
     public function with() {
+        $activeEvents = DisasterEvent::active()->orderByDesc('updated_at')->get();
+        $emergencyMode = Setting::get('emergency_mode', 'off') === 'on';
         return [
-            'emergencyMode' => Setting::get('emergency_mode', 'off') === 'on',
+            'emergencyMode' => $emergencyMode,
+            'activeEvents' => $activeEvents,
+            'hasActiveEvent' => $activeEvents->count() > 0,
             'options' => ['Makanan & Minuman', 'Peralatan Medis', 'Tenda & Hunian', 'Pakaian & Selimut', 'Kebutuhan Bayi/Lansia']
         ];
     }
@@ -33,6 +47,12 @@ new class extends Component {
     public function save() {
         if (Setting::get('emergency_mode', 'off') !== 'on') {
             return session()->flash('error', 'Maaf, form bantuan saat ini dinonaktifkan.');
+        }
+
+        $event = DisasterEvent::active()->find($this->disaster_event_id);
+        if (!$event) {
+            $this->addError('disaster_event_id', 'Event tidak valid atau sudah tidak aktif.');
+            return session()->flash('error', 'Maaf, belum ada event bencana yang aktif saat ini.');
         }
 
         // Rate Limiting: Max 2 requests per hour per IP
@@ -43,6 +63,7 @@ new class extends Component {
         $this->validate();
 
         BantuanRequest::create([
+            'disaster_event_id' => $event->id,
             'nama_pelapor' => $this->nama_pelapor,
             'no_hp' => $this->no_hp,
             'lokasi_detail' => $this->lokasi_detail,
@@ -95,13 +116,14 @@ new class extends Component {
             </a>
             <h1 class="text-3xl font-extrabold text-slate-900 mb-2">Form Permintaan Bantuan</h1>
             <p class="text-slate-500">Silakan isi data di bawah ini dengan sebenar-benarnya untuk koordinasi logistik.</p>
+            <p class="mt-4 text-sm text-slate-600 font-semibold">Pilih event bencana yang sesuai sebelum mengirim laporan.</p>
         </div>
 
-        @if(!$emergencyMode)
+        @if(!$emergencyMode || !$hasActiveEvent)
             <div class="bg-amber-50 border border-amber-200 p-8 rounded-3xl text-center max-w-xl mx-auto">
                 <svg class="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                <h3 class="text-xl font-bold text-amber-900 mb-2">Sistem Mode Normal</h3>
-                <p class="text-amber-700">Maaf, saat ini sistem tidak dalam Mode Bencana. Form permintaan bantuan dinonaktifkan untuk sementara.</p>
+                <h3 class="text-xl font-bold text-amber-900 mb-2">Form Tidak Tersedia</h3>
+                <p class="text-amber-700">Maaf, saat ini tidak ada event bencana yang aktif atau Emergency Mode sedang nonaktif.</p>
             </div>
         @elseif($success)
             <div class="bg-emerald-50 border border-emerald-200 p-8 rounded-3xl text-center animate-bounce-in max-w-xl mx-auto">
@@ -113,6 +135,17 @@ new class extends Component {
         @else
             <form wire:submit="save" class="bg-white p-8 lg:p-12 rounded-[2.5rem] shadow-2xl shadow-slate-200 border border-slate-100 grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div class="space-y-8">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Event Bencana</label>
+                        <select wire:model="disaster_event_id" class="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all">
+                            <option value="">Pilih Event...</option>
+                            @foreach($activeEvents as $ev)
+                                <option value="{{ $ev->id }}">{{ $ev->name }}{{ $ev->location ? ' — ' . $ev->location : '' }}</option>
+                            @endforeach
+                        </select>
+                        @error('disaster_event_id') <span class="text-red-500 text-[10px] font-bold uppercase tracking-wider ml-1">{{ $message }}</span> @enderror
+                    </div>
+
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Pelapor / Penanggung Jawab</label>
                         <input wire:model="nama_pelapor" type="text" placeholder="Contoh: Budi Santoso" class="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all">

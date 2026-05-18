@@ -24,7 +24,7 @@ new class extends Component {
             <h1 class="text-2xl font-bold text-slate-900">Data Donatur</h1>
             <p class="text-slate-500 text-sm">Kelola daftar donatur dan supplier logistik.</p>
         </div>
-        <a href="/donatur/create" wire:navigate class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-red-100 flex items-center gap-2 text-sm">
+        <a href="/donatur/create" wire:navigate class="bg-mdmc-700 hover:bg-mdmc-800 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-mdmc-100 flex items-center gap-2 text-sm">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Tambah Donatur
         </a>

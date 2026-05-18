@@ -105,7 +105,7 @@ new class extends Component
         </div>
 
         <div class="pt-4">
-            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2">
+            <button type="submit" class="w-full bg-mdmc-700 hover:bg-mdmc-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-mdmc-100 transition-all flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                 Buat Akun User
             </button>

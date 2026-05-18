@@ -1,27 +1,69 @@
 <?php
 use Livewire\Component;
 use App\Models\BantuanRequest;
+use App\Models\DisasterEvent;
 use App\Models\Setting;
 use Livewire\WithPagination;
 
 new class extends Component {
     use WithPagination;
 
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
+    private function currentEvent(): ?DisasterEvent
+    {
+        $selected = session('admin_disaster_event_id');
+        if ($selected) {
+            return DisasterEvent::find((int) $selected);
+        }
+
+        $fallbackId = DisasterEvent::active()->value('id') ?: DisasterEvent::orderByDesc('id')->value('id');
+        if ($fallbackId) {
+            session(['admin_disaster_event_id' => (int) $fallbackId]);
+            return DisasterEvent::find((int) $fallbackId);
+        }
+
+        return null;
+    }
+
     public function with() {
+        $event = $this->currentEvent();
+        $query = BantuanRequest::latest();
+        if ($event) {
+            $query->where('disaster_event_id', $event->id);
+        } else {
+            $query->whereRaw('1=0');
+        }
+
         return [
-            'requests' => BantuanRequest::latest()->paginate(10),
+            'event' => $event,
+            'requests' => $query->paginate(10),
             'emergencyMode' => Setting::get('emergency_mode', 'off') === 'on'
         ];
     }
 
     public function toggleEmergency() {
         $current = Setting::get('emergency_mode', 'off');
-        Setting::set('emergency_mode', $current === 'on' ? 'off' : 'on');
+        $next = $current === 'on' ? 'off' : 'on';
+
+        if ($next === 'on' && !DisasterEvent::active()->exists()) {
+            session()->flash('error', 'Tidak bisa mengaktifkan Emergency Mode karena belum ada event bencana yang Active.');
+            return;
+        }
+
+        Setting::set('emergency_mode', $next, 'boolean');
         session()->flash('message', 'Mode Darurat berhasil diperbarui.');
     }
 
     public function updateStatus($id, $status) {
         $request = BantuanRequest::findOrFail($id);
+        $event = DisasterEvent::find($request->disaster_event_id);
+        if (!$event || $event->status !== 'active') {
+            session()->flash('error', 'Tidak bisa memproses permintaan karena event sudah diarsipkan atau tidak ditemukan.');
+            return;
+        }
         $request->update(['status' => $status]);
         
         $this->dispatch('visual-feedback', message: 'Status permintaan berhasil diperbarui.');
@@ -50,6 +92,32 @@ new class extends Component {
         });
     }
 }" @open-map-modal.window="openMap($event.detail.lat, $event.detail.lng)">
+    @if(!$event)
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 px-5 py-4 rounded-2xl font-semibold">
+            Belum ada event bencana. Buat event terlebih dahulu di menu Manajemen Bencana.
+        </div>
+    @elseif($event->status !== 'active')
+        <div class="bg-slate-50 border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl font-semibold">
+            Event terpilih diarsipkan. Input publik dinonaktifkan untuk event ini.
+        </div>
+    @else
+        <div class="bg-white border border-slate-200 text-slate-700 px-5 py-4 rounded-2xl font-semibold shadow-sm">
+            Event: <span class="font-extrabold">{{ $event->name }}</span>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl font-semibold">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if (session()->has('message'))
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-5 py-4 rounded-2xl font-semibold">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <!-- Emergency Control Panel -->
     <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex items-center gap-6">

@@ -2,11 +2,16 @@
 use Livewire\Component;
 use App\Models\BarangMasuk;
 use App\Models\Barang;
+use App\Models\DisasterEvent;
 use App\Models\Supplier;
 use Livewire\Attributes\Validate;
 use Illuminate\Support\Facades\DB;
 
 new class extends Component {
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
     #[Validate('required')]
     public $barang_id;
 
@@ -24,8 +29,15 @@ new class extends Component {
     }
 
     public function with() {
+        $eventId = session('admin_disaster_event_id');
+        $event = $eventId ? DisasterEvent::find((int) $eventId) : DisasterEvent::active()->first();
+        if ($event && !$eventId) {
+            session(['admin_disaster_event_id' => $event->id]);
+        }
+
         return [
-            'barangs' => Barang::all(),
+            'event' => $event,
+            'barangs' => $event ? Barang::where('disaster_event_id', $event->id)->get() : collect(),
             'suppliers' => Supplier::all(),
         ];
     }
@@ -33,11 +45,23 @@ new class extends Component {
     public function save() {
         $this->validate();
 
-        DB::transaction(function() {
+        $eventId = session('admin_disaster_event_id');
+        $event = $eventId ? DisasterEvent::find((int) $eventId) : DisasterEvent::active()->first();
+        if (!$event) {
+            session()->flash('error', 'Buat dan pilih event bencana terlebih dahulu.');
+            return;
+        }
+        if ($event->status !== 'active') {
+            session()->flash('error', 'Event terpilih sudah diarsipkan. Pilih event yang Active untuk input data baru.');
+            return;
+        }
+
+        DB::transaction(function() use ($event) {
             $id = 'BM-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
             
             BarangMasuk::create([
                 'id' => $id,
+                'disaster_event_id' => $event->id,
                 'barang_id' => $this->barang_id,
                 'supplier_id' => $this->supplier_id,
                 'user_id' => auth()->id() ?? 1, // Fallback for testing
@@ -64,6 +88,18 @@ new class extends Component {
             <p class="text-slate-500 text-sm">Input data barang yang diterima dari donatur.</p>
         </div>
     </div>
+
+    @if (session()->has('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($event)
+        <div class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold shadow-sm">
+            Event: <span class="font-extrabold">{{ $event->name }}</span>
+        </div>
+    @endif
 
     <form wire:submit="save" class="bg-white p-8 lg:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">

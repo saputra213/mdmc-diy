@@ -2,12 +2,17 @@
 
 use Livewire\Component;
 use App\Models\Barang;
+use App\Models\DisasterEvent;
 use App\Models\Jenis;
 use App\Models\Satuan;
 use Livewire\Attributes\Validate;
 
 new class extends Component
 {
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
     #[Validate('required|unique:barangs,id')]
     public $id_barang;
 
@@ -40,7 +45,14 @@ new class extends Component
 
     public function with()
     {
+        $eventId = session('admin_disaster_event_id');
+        $event = $eventId ? DisasterEvent::find((int) $eventId) : DisasterEvent::active()->first();
+        if ($event && !$eventId) {
+            session(['admin_disaster_event_id' => $event->id]);
+        }
+
         return [
+            'event' => $event,
             'jenisList' => Jenis::all(),
             'satuanList' => Satuan::all(),
         ];
@@ -50,8 +62,20 @@ new class extends Component
     {
         $this->validate();
 
+        $eventId = session('admin_disaster_event_id');
+        $event = $eventId ? DisasterEvent::find((int) $eventId) : DisasterEvent::active()->first();
+        if (!$event) {
+            session()->flash('error', 'Buat dan pilih event bencana terlebih dahulu.');
+            return;
+        }
+        if ($event->status !== 'active') {
+            session()->flash('error', 'Event terpilih sudah diarsipkan. Pilih event yang Active untuk input data baru.');
+            return;
+        }
+
         Barang::create([
             'id' => $this->id_barang,
+            'disaster_event_id' => $event->id,
             'nama_barang' => $this->nama_barang,
             'jenis_id' => $this->jenis_id,
             'satuan_id' => $this->satuan_id,
@@ -78,6 +102,18 @@ new class extends Component
                 <p class="text-slate-500">Masukkan detail barang baru.</p>
             </div>
         </div>
+
+        @if (session()->has('error'))
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if($event)
+            <div class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold shadow-sm">
+                Event: <span class="font-extrabold">{{ $event->name }}</span>
+            </div>
+        @endif
 
         <form wire:submit="save" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
             <div class="space-y-2">
@@ -106,7 +142,7 @@ new class extends Component
 
                 <div class="space-y-2">
                     <label for="satuan_id" class="text-sm font-semibold text-slate-700">Satuan Logistik</label>
-                    <select wire:model="satuan_id" id="satuan_id" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none bg-white">
+                    <select wire:model="satuan_id" id="satuan_id" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-mdmc-600 focus:border-mdmc-600 transition-all outline-none bg-white">
                         <option value="">Pilih Satuan</option>
                         @foreach($satuanList as $satuan)
                             <option value="{{ $satuan->id }}">{{ $satuan->nama_satuan }}</option>
@@ -117,7 +153,7 @@ new class extends Component
             </div>
 
             <div class="pt-4 flex gap-3">
-                <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2">
+                <button type="submit" class="flex-1 bg-mdmc-700 hover:bg-mdmc-800 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-mdmc-200 flex items-center justify-center gap-2">
                     <svg wire:loading wire:target="save" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

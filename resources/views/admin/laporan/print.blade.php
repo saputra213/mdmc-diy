@@ -2,25 +2,32 @@
     use App\Models\BarangMasuk;
     use App\Models\BarangKeluar;
     use App\Models\Barang;
+    use App\Models\DisasterEvent;
 
     $jenis = request('jenis');
     $mulai = request('mulai');
     $selesai = request('selesai');
+    $eventId = request('event_id');
+    $event = $eventId ? DisasterEvent::find((int) $eventId) : null;
 
     if ($jenis === 'masuk') {
-        $data = BarangMasuk::with(['barang', 'donatur', 'lokasi'])
-            ->whereBetween('tanggal', [$mulai, $selesai])
+        $data = BarangMasuk::with(['barang', 'supplier', 'user'])
+            ->when($eventId, fn ($q) => $q->where('disaster_event_id', (int) $eventId))
+            ->whereBetween('tanggal_masuk', [$mulai, $selesai])
             ->latest()
             ->get();
         $title = "Laporan Logistik Masuk";
     } elseif ($jenis === 'keluar') {
         $data = BarangKeluar::with(['barang', 'lokasi'])
-            ->whereBetween('tanggal', [$mulai, $selesai])
+            ->when($eventId, fn ($q) => $q->where('disaster_event_id', (int) $eventId))
+            ->whereBetween('tanggal_keluar', [$mulai, $selesai])
             ->latest()
             ->get();
         $title = "Laporan Logistik Keluar";
     } else {
-        $data = Barang::with(['jenis', 'satuan'])->get();
+        $data = Barang::with(['jenis', 'satuan'])
+            ->when($eventId, fn ($q) => $q->where('disaster_event_id', (int) $eventId))
+            ->get();
         $title = "Laporan Stok Logistik";
     }
 @endphp
@@ -44,7 +51,7 @@
         <!-- Header Laporan -->
         <div class="flex items-center justify-between border-b-4 border-slate-900 pb-6 mb-8">
             <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center">
+                <div class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center">
                     <span class="text-white font-black text-2xl">M</span>
                 </div>
                 <div>
@@ -55,6 +62,9 @@
             <div class="text-right">
                 <h2 class="text-xl font-bold text-slate-900">{{ $title }}</h2>
                 <p class="text-sm text-slate-500">Periode: {{ $mulai }} s/d {{ $selesai }}</p>
+                @if($event)
+                    <p class="text-sm text-slate-500">Event: {{ $event->name }}</p>
+                @endif
             </div>
         </div>
 
@@ -84,15 +94,15 @@
                 @foreach($data as $item)
                 <tr>
                     @if($jenis === 'masuk')
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->tanggal }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->tanggal_masuk }}</td>
                         <td class="px-4 py-3 text-sm font-bold text-slate-900">{{ $item->barang->nama_barang }}</td>
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->donatur->nama_donatur }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-slate-900 text-right">{{ $item->jumlah }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->supplier->nama_supplier }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-slate-900 text-right">{{ $item->jumlah_masuk }}</td>
                     @elseif($jenis === 'keluar')
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->tanggal }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">{{ $item->tanggal_keluar }}</td>
                         <td class="px-4 py-3 text-sm font-bold text-slate-900">{{ $item->barang->nama_barang }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600">{{ $item->lokasi->nama_lokasi }}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-slate-900 text-right">{{ $item->jumlah }}</td>
+                        <td class="px-4 py-3 text-sm font-bold text-slate-900 text-right">{{ $item->jumlah_keluar }}</td>
                     @else
                         <td class="px-4 py-3 text-sm font-bold text-slate-900">{{ $item->nama_barang }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600">{{ $item->jenis->nama_jenis }}</td>
@@ -114,7 +124,7 @@
         </div>
 
         <div class="no-print mt-10 flex justify-center gap-4">
-            <button onclick="window.print()" class="bg-red-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg">Cetak Sekarang</button>
+            <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold shadow-lg">Cetak Sekarang</button>
             <button onclick="window.close()" class="bg-slate-100 text-slate-600 px-8 py-3 rounded-xl font-bold">Tutup</button>
         </div>
     </div>

@@ -12,12 +12,18 @@ class BarangMasuk extends Model
 
     protected $fillable = [
         'id',
+        'disaster_event_id',
         'supplier_id',
         'barang_id',
         'user_id',
         'jumlah_masuk',
         'tanggal_masuk',
     ];
+
+    public function disasterEvent()
+    {
+        return $this->belongsTo(DisasterEvent::class);
+    }
 
     public function supplier()
     {

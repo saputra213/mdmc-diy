@@ -2,22 +2,64 @@
 
 use Livewire\Component;
 use App\Models\Barang;
+use App\Models\DisasterEvent;
 use Livewire\WithPagination;
 
 new class extends Component
 {
     use WithPagination;
 
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
+    private function currentEvent(): ?DisasterEvent
+    {
+        $selected = session('admin_disaster_event_id');
+        if ($selected) {
+            return DisasterEvent::find((int) $selected);
+        }
+
+        $fallbackId = DisasterEvent::active()->value('id') ?: DisasterEvent::orderByDesc('id')->value('id');
+        if ($fallbackId) {
+            session(['admin_disaster_event_id' => (int) $fallbackId]);
+            return DisasterEvent::find((int) $fallbackId);
+        }
+
+        return null;
+    }
+
     public function with()
     {
+        $event = $this->currentEvent();
+        $query = Barang::with(['jenis', 'satuan'])->latest();
+        if ($event) {
+            $query->where('disaster_event_id', $event->id);
+        } else {
+            $query->whereRaw('1=0');
+        }
+
         return [
-            'barangs' => Barang::with(['jenis', 'satuan'])->latest()->paginate(10),
+            'event' => $event,
+            'eventLocked' => !$event || $event->status !== 'active',
+            'barangs' => $query->paginate(10),
         ];
     }
 
     public function delete($id)
     {
-        Barang::find($id)->delete();
+        $barang = Barang::find($id);
+        if (!$barang) {
+            return;
+        }
+
+        $event = DisasterEvent::find($barang->disaster_event_id);
+        if (!$event || $event->status !== 'active') {
+            session()->flash('error', 'Tidak bisa menghapus data karena event sudah diarsipkan atau tidak ditemukan.');
+            return;
+        }
+
+        $barang->delete();
         session()->flash('message', 'Barang berhasil dihapus.');
     }
 };
@@ -29,13 +71,30 @@ new class extends Component
                 <h1 class="text-2xl font-bold text-slate-900">Data Logistik</h1>
                 <p class="text-slate-500">Kelola daftar inventaris logistik.</p>
             </div>
-            <a href="/barang/create" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm shadow-red-200">
+            <a href="/barang/create" @class([
+                'bg-mdmc-700 hover:bg-mdmc-800 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm shadow-mdmc-200',
+                'opacity-50 pointer-events-none' => $eventLocked,
+            ])>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 Tambah Logistik
             </a>
         </div>
+
+        @if(!$event)
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl font-semibold">
+                Belum ada event bencana. Buat event terlebih dahulu di menu Manajemen Bencana.
+            </div>
+        @elseif($eventLocked)
+            <div class="bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold">
+                Event terpilih diarsipkan. Input data baru dinonaktifkan.
+            </div>
+        @else
+            <div class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold shadow-sm">
+                Event: <span class="font-extrabold">{{ $event->name }}</span>
+            </div>
+        @endif
 
         @if (session()->has('message'))
             <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-3">
@@ -46,7 +105,13 @@ new class extends Component
             </div>
         @endif
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        @if (session()->has('error'))
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-bold">
@@ -55,6 +120,7 @@ new class extends Component
                             <th class="px-6 py-4">Nama Barang</th>
                             <th class="px-6 py-4">Jenis</th>
                             <th class="px-6 py-4">Stok</th>
+                            <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Satuan</th>
                             <th class="px-6 py-4 text-center">Aksi</th>
                         </tr>
@@ -78,6 +144,13 @@ new class extends Component
                                         {{ $barang->stok }}
                                     </span>
                                 </td>
+                                <td class="px-6 py-4">
+                                    @if($barang->stok > 0)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold">Tersedia</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold">Habis</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-slate-500">{{ $barang->satuan->nama_satuan }}</td>
                                 <td class="px-6 py-4">
                                     <div class="flex justify-center items-center gap-2">
@@ -96,13 +169,13 @@ new class extends Component
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center gap-2">
                                         <svg class="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                         </svg>
                                         <p class="text-slate-500 font-medium">Belum ada data logistik.</p>
-                                        <a href="/barang/create" class="text-red-600 font-medium hover:underline">Tambah data pertama</a>
+                                        <a href="/barang/create" class="text-mdmc-700 font-medium hover:underline">Tambah data pertama</a>
                                     </div>
                                 </td>
                             </tr>

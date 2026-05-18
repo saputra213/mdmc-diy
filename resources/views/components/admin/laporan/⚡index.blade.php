@@ -16,7 +16,8 @@ new class extends Component {
         $url = route('admin.laporan.print', [
             'jenis' => $this->jenis_laporan,
             'mulai' => $this->tgl_mulai,
-            'selesai' => $this->tgl_selesai
+            'selesai' => $this->tgl_selesai,
+            'event_id' => session('admin_disaster_event_id'),
         ]);
         
         $this->dispatch('open-print-window', url: $url);

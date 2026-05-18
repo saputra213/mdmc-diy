@@ -4,6 +4,7 @@ use Livewire\Component;
 use App\Models\Barang;
 use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
+use App\Models\DisasterEvent;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\LogistikService;
@@ -11,36 +12,59 @@ use Livewire\Attributes\On;
 
 new class extends Component
 {
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
+    private function currentEventId(): ?int
+    {
+        $selected = session('admin_disaster_event_id');
+        if ($selected) {
+            return (int) $selected;
+        }
+
+        return DisasterEvent::active()->value('id') ?: DisasterEvent::orderByDesc('id')->value('id');
+    }
+
     public function with(LogistikService $logistikService)
     {
+        $eventId = $this->currentEventId();
+        $barangQuery = Barang::query()->where('disaster_event_id', $eventId);
+        $masukQuery = BarangMasuk::query()->where('disaster_event_id', $eventId);
+        $keluarQuery = BarangKeluar::query()->where('disaster_event_id', $eventId);
+
         return [
-            'totalBarang' => Barang::count(),
+            'activeEvent' => $eventId ? DisasterEvent::find($eventId) : null,
+            'totalBarang' => $eventId ? $barangQuery->count() : 0,
             'totalDonatur' => Supplier::count(),
-            'totalStok' => Barang::sum('stok'),
+            'totalStok' => $eventId ? $barangQuery->sum('stok') : 0,
             'totalUser' => User::count(),
-            'recentMasuk' => BarangMasuk::with(['barang', 'supplier'])->latest()->take(5)->get(),
-            'recentKeluar' => BarangKeluar::with(['barang', 'lokasi'])->latest()->take(5)->get(),
-            'stokMinimum' => Barang::where('stok', '<=', 5)->take(5)->get(),
+            'recentMasuk' => $eventId ? $masukQuery->with(['barang', 'supplier'])->latest()->take(5)->get() : collect(),
+            'recentKeluar' => $eventId ? $keluarQuery->with(['barang', 'lokasi'])->latest()->take(5)->get() : collect(),
+            'stokMinimum' => $eventId ? Barang::where('disaster_event_id', $eventId)->where('stok', '<=', 5)->take(5)->get() : collect(),
             'externalStok' => $logistikService->getStokLogistik(), // Mocking data from service
             
             // Chart Data
             'chartData' => $this->getChartData(),
             'donutData' => [
-                'masuk' => BarangMasuk::sum('jumlah_masuk'),
-                'keluar' => BarangKeluar::sum('jumlah_keluar'),
+                'masuk' => $eventId ? $masukQuery->sum('jumlah_masuk') : 0,
+                'keluar' => $eventId ? $keluarQuery->sum('jumlah_keluar') : 0,
             ]
         ];
     }
 
     private function getChartData()
     {
+        $eventId = $this->currentEventId();
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         $data = [];
         for ($i = 1; $i <= 12; $i++) {
-            $count = BarangMasuk::whereYear('tanggal_masuk', date('Y'))
+            $count = BarangMasuk::where('disaster_event_id', $eventId)
+                ->whereYear('tanggal_masuk', date('Y'))
                 ->whereMonth('tanggal_masuk', $i)
                 ->count() + 
-                BarangKeluar::whereYear('tanggal_keluar', date('Y'))
+                BarangKeluar::where('disaster_event_id', $eventId)
+                ->whereYear('tanggal_keluar', date('Y'))
                 ->whereMonth('tanggal_keluar', $i)
                 ->count();
             $data[] = $count;
@@ -119,6 +143,11 @@ new class extends Component
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
             <p class="text-slate-500">Ringkasan operasional logistik MDMC DIY.</p>
+            @if($activeEvent)
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Event: {{ $activeEvent->name }}</p>
+            @else
+                <p class="text-xs font-bold text-amber-600 uppercase tracking-widest mt-2">Belum ada event bencana. Buat event untuk mulai input data.</p>
+            @endif
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">

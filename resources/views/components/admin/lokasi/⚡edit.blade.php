@@ -76,7 +76,7 @@ new class extends Component {
             </div>
 
             <div class="pt-4 flex gap-4">
-                <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-5 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-red-100 flex items-center justify-center gap-3 group">
+                <button type="submit" class="flex-1 bg-mdmc-700 hover:bg-mdmc-800 text-white py-5 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-mdmc-100 flex items-center justify-center gap-3 group">
                     Simpan Perubahan
                     <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>

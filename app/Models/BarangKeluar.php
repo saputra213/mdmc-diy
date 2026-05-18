@@ -12,12 +12,18 @@ class BarangKeluar extends Model
 
     protected $fillable = [
         'id',
+        'disaster_event_id',
         'user_id',
         'barang_id',
         'jumlah_keluar',
         'tanggal_keluar',
         'lokasi_id',
     ];
+
+    public function disasterEvent()
+    {
+        return $this->belongsTo(DisasterEvent::class);
+    }
 
     public function user()
     {

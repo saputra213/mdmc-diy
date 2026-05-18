@@ -2,9 +2,14 @@
 
 use Livewire\Component;
 use App\Models\Kebutuhan;
+use App\Models\DisasterEvent;
 
 new class extends Component
 {
+    protected $listeners = [
+        'disaster-event-changed' => '$refresh',
+    ];
+
     public $nama_lokasi;
     public $jumlah_korban;
     public $nama_barang;
@@ -20,7 +25,19 @@ new class extends Component
             'butuh_barang' => 'required|numeric',
         ]);
 
+        $eventId = session('admin_disaster_event_id');
+        $event = $eventId ? DisasterEvent::find((int) $eventId) : DisasterEvent::active()->first();
+        if (!$event) {
+            session()->flash('error', 'Buat dan pilih event bencana terlebih dahulu.');
+            return;
+        }
+        if ($event->status !== 'active') {
+            session()->flash('error', 'Event terpilih sudah diarsipkan. Pilih event yang Active untuk input data baru.');
+            return;
+        }
+
         Kebutuhan::create([
+            'disaster_event_id' => $event->id,
             'nama_lokasi' => $this->nama_lokasi,
             'jumlah_korban' => $this->jumlah_korban,
             'nama_barang' => $this->nama_barang,
@@ -31,14 +48,14 @@ new class extends Component
         // Visual Feedback for Deaf Users
         $this->dispatch('visual-feedback', message: 'Data Kebutuhan Berhasil Ditambahkan!');
 
-        return $this->redirect('/admin/kebutuhan', navigate: true);
+        return $this->redirect('/kebutuhan', navigate: true);
     }
 };
 ?>
 
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="flex items-center gap-4">
-        <a href="/admin/kebutuhan" wire:navigate class="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+        <a href="/kebutuhan" wire:navigate class="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
         <div>
@@ -46,6 +63,12 @@ new class extends Component
             <p class="text-slate-500 text-sm">Input kebutuhan logistik baru.</p>
         </div>
     </div>
+
+    @if (session()->has('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <form wire:submit="save" class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
