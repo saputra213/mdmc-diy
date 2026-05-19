@@ -13,6 +13,9 @@ new class extends Component
     #[Validate('nullable|string|max:160')]
     public $location = '';
 
+    #[Validate('nullable|integer|min:0|max:100000000')]
+    public $affected_houses;
+
     public $set_active = true;
 
     protected $listeners = [
@@ -46,10 +49,11 @@ new class extends Component
         $event = DisasterEvent::create([
             'name' => $this->name,
             'location' => $this->location ?: null,
+            'affected_houses' => $this->affected_houses === null || $this->affected_houses === '' ? null : (int) $this->affected_houses,
             'status' => 'archived',
         ]);
 
-        $this->reset(['name', 'location']);
+        $this->reset(['name', 'location', 'affected_houses']);
 
         if ($this->set_active || ($this->emergencyMode() && !DisasterEvent::active()->exists())) {
             $this->activate($event->id);
@@ -131,16 +135,22 @@ new class extends Component
             <p class="text-sm text-slate-500 mt-1">Nama event contoh: Banjir Jogja 2026.</p>
         </div>
         <form wire:submit="createEvent" class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div class="lg:col-span-5 space-y-2">
+            <div class="lg:col-span-4 space-y-2">
                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Event</label>
                 <input wire:model="name" type="text" class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
                 @error('name') <div class="text-red-600 text-[10px] font-bold uppercase tracking-widest ml-1">{{ $message }}</div> @enderror
             </div>
 
-            <div class="lg:col-span-5 space-y-2">
+            <div class="lg:col-span-4 space-y-2">
                 <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Lokasi</label>
                 <input wire:model="location" type="text" placeholder="Contoh: Sleman, DIY" class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
                 @error('location') <div class="text-red-600 text-[10px] font-bold uppercase tracking-widest ml-1">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="lg:col-span-2 space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Rumah Terdampak</label>
+                <input wire:model="affected_houses" type="number" min="0" placeholder="Contoh: 1125" class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
+                @error('affected_houses') <div class="text-red-600 text-[10px] font-bold uppercase tracking-widest ml-1">{{ $message }}</div> @enderror
             </div>
 
             <div class="lg:col-span-2 flex flex-col justify-end gap-3">
@@ -178,6 +188,7 @@ new class extends Component
                     <tr>
                         <th class="px-8 py-4">Nama</th>
                         <th class="px-8 py-4">Lokasi</th>
+                        <th class="px-8 py-4">Rumah</th>
                         <th class="px-8 py-4">Status</th>
                         <th class="px-8 py-4 text-right">Aksi</th>
                     </tr>
@@ -190,6 +201,7 @@ new class extends Component
                                 <p class="text-xs text-slate-400 font-semibold mt-1">ID: {{ $event->id }}</p>
                             </td>
                             <td class="px-8 py-5 text-slate-600 font-semibold">{{ $event->location ?: '-' }}</td>
+                            <td class="px-8 py-5 text-slate-600 font-semibold">{{ $event->affected_houses !== null ? number_format($event->affected_houses) : '-' }}</td>
                             <td class="px-8 py-5">
                                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-extrabold uppercase tracking-widest">Active</span>
                             </td>
@@ -201,7 +213,7 @@ new class extends Component
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-8 py-16 text-center text-slate-500 font-semibold">
+                            <td colspan="5" class="px-8 py-16 text-center text-slate-500 font-semibold">
                                 Belum ada event aktif.
                             </td>
                         </tr>

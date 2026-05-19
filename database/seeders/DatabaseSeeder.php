@@ -78,6 +78,7 @@ class DatabaseSeeder extends Seeder
         Setting::set('emergency_mode', 'on', 'string');
         Setting::set('guest.hero_headline', 'Sistem Informasi Logistik Kebencanaan', 'string');
         Setting::set('guest.hero_description', 'Pantau stok logistik, kebutuhan, dan emergency call masyarakat per event bencana.', 'text');
+        Setting::set('guest.hero_image_path', 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1920&q=80', 'string');
         Setting::set('guest.gallery_title', 'Galeri Lapangan', 'string');
         Setting::set('guest.gallery_excerpt', 'Dokumentasi per kejadian bencana. Klik folder event untuk melihat foto-foto.', 'text');
         Setting::set('guest.donation_baznas_url', 'https://baznas.go.id/', 'url');
@@ -85,11 +86,11 @@ class DatabaseSeeder extends Seeder
         Setting::set('guest.donation_wa_template', "Halo MDMC DIY, saya ingin donasi barang untuk event {event}.\nSaya tertarik membantu kebutuhan berikut:\n{items}\n\nMohon info lokasi drop-off dan prosedur selanjutnya.", 'text');
 
         $events = collect([
-            DisasterEvent::create(['name' => 'Banjir Jogja 2026', 'location' => 'Kota Yogyakarta', 'status' => 'active']),
-            DisasterEvent::create(['name' => 'Gempa Bantul 2026', 'location' => 'Kab. Bantul', 'status' => 'active']),
-            DisasterEvent::create(['name' => 'Longsor Gunungkidul 2026', 'location' => 'Kab. Gunungkidul', 'status' => 'active']),
-            DisasterEvent::create(['name' => 'Erupsi Merapi 2025', 'location' => 'Sleman', 'status' => 'archived']),
-            DisasterEvent::create(['name' => 'Angin Kencang Kulon Progo 2024', 'location' => 'Kulon Progo', 'status' => 'archived']),
+            DisasterEvent::create(['name' => 'Banjir Jogja 2026', 'location' => 'Kota Yogyakarta', 'affected_houses' => 1125, 'status' => 'active']),
+            DisasterEvent::create(['name' => 'Gempa Bantul 2026', 'location' => 'Kab. Bantul', 'affected_houses' => 845, 'status' => 'active']),
+            DisasterEvent::create(['name' => 'Longsor Gunungkidul 2026', 'location' => 'Kab. Gunungkidul', 'affected_houses' => 320, 'status' => 'active']),
+            DisasterEvent::create(['name' => 'Erupsi Merapi 2025', 'location' => 'Sleman', 'affected_houses' => 2100, 'status' => 'archived']),
+            DisasterEvent::create(['name' => 'Angin Kencang Kulon Progo 2024', 'location' => 'Kulon Progo', 'affected_houses' => 540, 'status' => 'archived']),
         ]);
 
         $makanan = Jenis::create(['nama_jenis' => 'Makanan & Minuman']);

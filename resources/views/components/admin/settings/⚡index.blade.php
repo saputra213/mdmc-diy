@@ -25,6 +25,11 @@ new class extends Component {
 
     public $poster_path;
 
+    #[Validate('nullable|image|max:4096')]
+    public $hero_image;
+
+    public $hero_image_path;
+
     public function mount()
     {
         $this->hero_headline = Setting::get('guest.hero_headline', 'Manajemen Bencana Terpadu untuk Respons Cepat dan Tepat.');
@@ -32,6 +37,7 @@ new class extends Component {
         $this->video_url = Setting::get('guest.video_url', 'https://www.youtube.com/embed/ysz5S6PUM-U');
         $this->emergency_mode = Setting::get('emergency_mode', 'off') === 'on';
         $this->poster_path = Setting::get('guest.poster_path');
+        $this->hero_image_path = Setting::get('guest.hero_image_path');
     }
 
     private function normalizeVideoUrl(?string $url): ?string
@@ -64,6 +70,19 @@ new class extends Component {
             $this->emergency_mode = false;
             session()->flash('error', 'Emergency Mode tidak bisa dinyalakan karena belum ada event bencana yang Active. Buat/aktifkan event terlebih dahulu di menu Manajemen Bencana.');
             return;
+        }
+
+        if ($this->hero_image) {
+            $dir = public_path('images/hero');
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $ext = strtolower($this->hero_image->getClientOriginalExtension() ?: 'jpg');
+            $filename = 'hero-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $ext;
+            $this->hero_image->move($dir, $filename);
+            $this->hero_image_path = 'images/hero/' . $filename;
+            Setting::set('guest.hero_image_path', $this->hero_image_path, 'string');
         }
 
         if ($this->poster) {
@@ -125,6 +144,30 @@ new class extends Component {
                 <input wire:model="video_url" type="text" placeholder="https://youtube.com/watch?v=..." class="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
                 @error('video_url') <span class="text-red-500 text-[10px] font-bold uppercase tracking-wider ml-1">{{ $message }}</span> @enderror
                 <p class="text-[11px] text-slate-400">Boleh link watch, youtu.be, atau embed. Sistem akan normalisasi otomatis.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Hero Image (Background)</label>
+                <input wire:model="hero_image" type="file" accept="image/*" class="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
+                @error('hero_image') <span class="text-red-500 text-[10px] font-bold uppercase tracking-wider ml-1">{{ $message }}</span> @enderror
+                <p class="text-[11px] text-slate-400">Untuk background hero landing page. Maksimal 4MB.</p>
+
+                @if($hero_image)
+                    <div class="mt-3 bg-white border border-slate-100 rounded-2xl overflow-hidden">
+                        <div class="p-3 border-b border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preview Upload</p>
+                        </div>
+                        <img src="{{ $hero_image->temporaryUrl() }}" class="w-full h-auto" alt="Preview Hero">
+                    </div>
+                @elseif($hero_image_path)
+                    <div class="mt-3 bg-white border border-slate-100 rounded-2xl overflow-hidden">
+                        <div class="p-3 border-b border-slate-100 flex items-center justify-between">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hero Saat Ini</p>
+                            <a href="{{ asset($hero_image_path) }}" target="_blank" class="text-[10px] font-bold text-mdmc-700 uppercase tracking-widest">Buka</a>
+                        </div>
+                        <img src="{{ asset($hero_image_path) }}" class="w-full h-auto" alt="Hero Image">
+                    </div>
+                @endif
             </div>
 
             <div class="space-y-2">

@@ -9,6 +9,7 @@ class DisasterEvent extends Model
     protected $fillable = [
         'name',
         'location',
+        'affected_houses',
         'status',
     ];
 
