@@ -3,6 +3,7 @@ use Livewire\Component;
 use App\Models\DisasterEvent;
 use App\Models\Setting;
 use Livewire\Attributes\Validate;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Livewire\WithFileUploads;
 
@@ -73,29 +74,47 @@ new class extends Component {
         }
 
         if ($this->hero_image) {
-            $dir = public_path('images/hero');
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
+            try {
+                $dir = public_path('images/hero');
+                File::ensureDirectoryExists($dir);
 
-            $ext = strtolower($this->hero_image->getClientOriginalExtension() ?: 'jpg');
-            $filename = 'hero-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $ext;
-            $this->hero_image->move($dir, $filename);
-            $this->hero_image_path = 'images/hero/' . $filename;
-            Setting::set('guest.hero_image_path', $this->hero_image_path, 'string');
+                $ext = strtolower($this->hero_image->getClientOriginalExtension() ?: 'jpg');
+                $filename = 'hero-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $ext;
+
+                $source = $this->hero_image->getRealPath();
+                $target = $dir . DIRECTORY_SEPARATOR . $filename;
+                if (!$source || !is_file($source) || !@copy($source, $target)) {
+                    throw new RuntimeException('Gagal menyimpan file hero image. Pastikan folder public/images/hero dapat ditulis.');
+                }
+
+                $this->hero_image_path = 'images/hero/' . $filename;
+                Setting::set('guest.hero_image_path', $this->hero_image_path, 'string');
+            } catch (Throwable $e) {
+                session()->flash('error', $e->getMessage());
+                return;
+            }
         }
 
         if ($this->poster) {
-            $dir = public_path('images/posters');
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
+            try {
+                $dir = public_path('images/posters');
+                File::ensureDirectoryExists($dir);
 
-            $ext = strtolower($this->poster->getClientOriginalExtension() ?: 'jpg');
-            $filename = 'poster-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $ext;
-            $this->poster->move($dir, $filename);
-            $this->poster_path = 'images/posters/' . $filename;
-            Setting::set('guest.poster_path', $this->poster_path, 'string');
+                $ext = strtolower($this->poster->getClientOriginalExtension() ?: 'jpg');
+                $filename = 'poster-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $ext;
+
+                $source = $this->poster->getRealPath();
+                $target = $dir . DIRECTORY_SEPARATOR . $filename;
+                if (!$source || !is_file($source) || !@copy($source, $target)) {
+                    throw new RuntimeException('Gagal menyimpan file poster. Pastikan folder public/images/posters dapat ditulis.');
+                }
+
+                $this->poster_path = 'images/posters/' . $filename;
+                Setting::set('guest.poster_path', $this->poster_path, 'string');
+            } catch (Throwable $e) {
+                session()->flash('error', $e->getMessage());
+                return;
+            }
         }
 
         Setting::set('guest.hero_headline', $this->hero_headline, 'string');
