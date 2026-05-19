@@ -222,14 +222,96 @@ new class extends Component
     </div>
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div
+        wire:key="dashboard-charts-{{ $activeEvent?->id ?? 'none' }}"
+        x-data="{
+            lineChart: null,
+            donutChart: null,
+            chartData: @js($chartData),
+            donutData: @js($donutData),
+            init() {
+                this.renderCharts();
+            },
+            renderCharts() {
+                if (!window.Chart) {
+                    setTimeout(() => this.renderCharts(), 50);
+                    return;
+                }
+
+                const lineCanvas = document.getElementById('lineChart');
+                const donutCanvas = document.getElementById('donutChart');
+
+                if (this.lineChart) {
+                    this.lineChart.destroy();
+                    this.lineChart = null;
+                }
+                if (this.donutChart) {
+                    this.donutChart.destroy();
+                    this.donutChart = null;
+                }
+
+                if (lineCanvas) {
+                    this.lineChart = new Chart(lineCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: this.chartData.labels,
+                            datasets: [{
+                                label: 'Total Transaksi',
+                                data: this.chartData.data,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#4f46e5',
+                                pointBorderWidth: 2,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f1f5f9' } },
+                                x: { grid: { display: false } },
+                            },
+                        },
+                    });
+                }
+
+                if (donutCanvas) {
+                    this.donutChart = new Chart(donutCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: [this.donutData.masuk, this.donutData.keluar],
+                                backgroundColor: ['#2563eb', '#ef4444'],
+                                borderWidth: 0,
+                                hoverOffset: 10,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '75%',
+                            plugins: { legend: { display: false } },
+                        },
+                    });
+                }
+            },
+        }"
+        x-init="init()"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+    >
         <!-- Line Chart -->
         <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-50 bg-slate-50/50">
                 <h3 class="font-bold text-slate-700 text-sm">Total Manajemen Logistik Perbulan pada Tahun {{ date('Y') }}</h3>
             </div>
-            <div class="p-6">
-                <canvas id="lineChart" height="300"></canvas>
+            <div class="p-6 h-[340px]">
+                <canvas id="lineChart" class="w-full h-full" wire:ignore></canvas>
             </div>
         </div>
 
@@ -239,7 +321,9 @@ new class extends Component
                 <h3 class="font-bold text-white text-sm">Manajemen Logistik</h3>
             </div>
             <div class="p-6">
-                <canvas id="donutChart" height="300"></canvas>
+                <div class="h-[260px]">
+                    <canvas id="donutChart" class="w-full h-full" wire:ignore></canvas>
+                </div>
                 <div class="mt-6 flex justify-center gap-6">
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full bg-blue-600"></div>
@@ -255,7 +339,7 @@ new class extends Component
     </div>
 
     <!-- Bottom Tables -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Data Stok Eksternal (Mocking API) -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
             <div class="p-4 bg-slate-900 text-center">
@@ -375,61 +459,4 @@ new class extends Component
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('livewire:navigated', () => {
-            const lineCtx = document.getElementById('lineChart');
-            if (lineCtx) {
-                new Chart(lineCtx, {
-                    type: 'line',
-                    data: {
-                        labels: @json($chartData['labels']),
-                        datasets: [{
-                            label: 'Total Transaksi',
-                            data: @json($chartData['data']),
-                            borderColor: '#4f46e5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#4f46e5',
-                            pointBorderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f1f5f9' } },
-                            x: { grid: { display: false } }
-                        }
-                    }
-                });
-            }
-
-            const donutCtx = document.getElementById('donutChart');
-            if (donutCtx) {
-                new Chart(donutCtx, {
-                    type: 'doughnut',
-                    data: {
-                        datasets: [{
-                            data: [@json($donutData['masuk']), @json($donutData['keluar'])],
-                            backgroundColor: ['#2563eb', '#ef4444'],
-                            borderWidth: 0,
-                            hoverOffset: 10
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '75%',
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-        });
-    </script>
 </div>

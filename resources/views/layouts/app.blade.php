@@ -387,6 +387,26 @@
 
     @livewireScripts
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sienna-accessibility@latest/dist/sienna-accessibility.umd.js" defer></script>
+    <script>
+        const syncAdminEventToUrl = (e) => {
+            const eventId = e?.detail?.eventId;
+            const url = new URL(window.location.href);
+            if (eventId) {
+                url.searchParams.set('event_id', String(eventId));
+            } else {
+                url.searchParams.delete('event_id');
+            }
+            if (window.Livewire && typeof window.Livewire.navigate === 'function') {
+                window.Livewire.navigate(url.pathname + url.search + url.hash);
+                return;
+            }
+            window.location.href = url.toString();
+        };
+
+        window.addEventListener('admin-event-changed', syncAdminEventToUrl);
+        document.addEventListener('admin-event-changed', syncAdminEventToUrl);
+    </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <div class="flex items-center gap-3">
     <span class="hidden xl:inline text-xs font-bold text-slate-400 uppercase tracking-widest">Event</span>
     <div class="relative">
-        <select wire:model="selectedEventId" class="pl-4 pr-10 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
+        <select wire:model.live="selectedEventId" class="pl-4 pr-10 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 focus:ring-4 focus:ring-mdmc-600/10 focus:border-mdmc-600 outline-none transition-all">
             @forelse($events as $event)
                 <option value="{{ $event->id }}">{{ $event->status === 'active' ? '● ' : '' }}{{ $event->name }}</option>
             @empty
@@ -13,4 +13,3 @@
         </svg>
     </div>
 </div>
-

@@ -11,6 +11,16 @@ class AdminDisasterEventFilter extends Component
 
     public function mount(): void
     {
+        $urlValue = request()->query('event_id');
+        if ($urlValue !== null && $urlValue !== '' && is_numeric($urlValue)) {
+            $candidate = (int) $urlValue;
+            if ($candidate > 0 && DisasterEvent::query()->whereKey($candidate)->exists()) {
+                $this->selectedEventId = $candidate;
+                session(['admin_disaster_event_id' => $candidate]);
+                return;
+            }
+        }
+
         $sessionValue = session('admin_disaster_event_id');
         if ($sessionValue) {
             $this->selectedEventId = (int) $sessionValue;
@@ -36,6 +46,7 @@ class AdminDisasterEventFilter extends Component
         $value = $value ? (int) $value : null;
         session(['admin_disaster_event_id' => $value]);
         $this->dispatch('disaster-event-changed');
+        $this->dispatch('admin-event-changed', eventId: $value);
     }
 
     public function render()
@@ -49,4 +60,3 @@ class AdminDisasterEventFilter extends Component
         ]);
     }
 }
-
