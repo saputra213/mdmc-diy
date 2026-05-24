@@ -81,11 +81,27 @@ new class extends Component {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($videos as $video)
                     @php
-                        $thumb = 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200&q=80&sig=' . ((int) $video->id * 11);
+                        $fallbackThumb = 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200&q=80&sig=' . ((int) $video->id * 11);
+                        $embed = trim((string) ($video->video_embed_url ?? ''));
+                        $videoId = null;
+
+                        if ($embed !== '') {
+                            if (preg_match('#youtube(?:-nocookie)?\.com/embed/([^?&/]+)#i', $embed, $m)) {
+                                $videoId = $m[1];
+                            } elseif (preg_match('#youtu\.be/([^?&/]+)#i', $embed, $m)) {
+                                $videoId = $m[1];
+                            } elseif (preg_match('#youtube\.com/watch\?[^#]*v=([^&]+)#i', $embed, $m)) {
+                                $videoId = $m[1];
+                            } elseif (preg_match('#youtube\.com/shorts/([^?&/]+)#i', $embed, $m)) {
+                                $videoId = $m[1];
+                            }
+                        }
+
+                        $thumb = $videoId ? ('https://i.ytimg.com/vi/' . $videoId . '/hqdefault.jpg') : $fallbackThumb;
                     @endphp
                     <a href="/video/{{ $video->id }}" wire:navigate class="group bg-white rounded-3xl border border-slate-100 overflow-hidden hover:shadow-md transition-all">
                         <div class="relative aspect-video overflow-hidden">
-                            <img src="{{ $thumb }}" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <img src="{{ $thumb }}" onerror="this.onerror=null;this.src='{{ $fallbackThumb }}';" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             <div class="absolute inset-0 bg-[#0B1635]/25"></div>
                             <div class="absolute inset-0 flex items-center justify-center">
                                 <div class="w-12 h-12 rounded-full bg-white/85 backdrop-blur border border-white/50 flex items-center justify-center shadow-lg shadow-black/20">

@@ -9,6 +9,8 @@ new class extends Component {
     use WithPagination;
 
     public Video $video;
+    public $mainEmbedUrl;
+    public $bisindoEmbedUrl;
 
     #[Validate('nullable|string|max:80')]
     public $nama;
@@ -19,6 +21,8 @@ new class extends Component {
     public function mount($id)
     {
         $this->video = Video::query()->where('is_active', true)->findOrFail($id);
+        $this->mainEmbedUrl = $this->normalizeEmbedUrl((string) $this->video->video_embed_url);
+        $this->bisindoEmbedUrl = $this->video->bisindo_embed_url ? $this->normalizeEmbedUrl((string) $this->video->bisindo_embed_url) : null;
 
         $key = 'video_viewed_' . $this->video->id;
         if (!session()->has($key)) {
@@ -26,6 +30,50 @@ new class extends Component {
             session()->put($key, true);
             $this->video->refresh();
         }
+    }
+
+    private function normalizeEmbedUrl(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $value;
+        }
+
+        if (str_contains($value, 'youtube.com/embed/') || str_contains($value, 'youtube-nocookie.com/embed/')) {
+            return $value;
+        }
+
+        $parts = parse_url($value);
+        if (!is_array($parts)) {
+            return $value;
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+        $query = (string) ($parts['query'] ?? '');
+
+        if ($host === 'youtu.be') {
+            $id = trim($path, '/');
+            if ($id !== '') {
+                return 'https://www.youtube.com/embed/' . $id;
+            }
+        }
+
+        if ($host === 'www.youtube.com' || $host === 'youtube.com' || $host === 'm.youtube.com') {
+            if (str_starts_with($path, '/watch')) {
+                parse_str($query, $qs);
+                $id = (string) ($qs['v'] ?? '');
+                if ($id !== '') {
+                    return 'https://www.youtube.com/embed/' . $id;
+                }
+            }
+
+            if (preg_match('#^/shorts/([^/?]+)#', $path, $m)) {
+                return 'https://www.youtube.com/embed/' . $m[1];
+            }
+        }
+
+        return $value;
     }
 
     public function addComment()
@@ -134,11 +182,11 @@ new class extends Component {
             <div class="lg:col-span-8 space-y-6">
                 <div class="bg-white rounded-3xl border border-slate-100 p-4">
                     <div class="relative rounded-2xl overflow-hidden bg-black" style="aspect-ratio: 16/9" x-ref="player">
-                        <iframe class="absolute inset-0 w-full h-full" src="{{ $video->video_embed_url }}" title="Video Utama" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <iframe class="absolute inset-0 w-full h-full" src="{{ $mainEmbedUrl }}" title="Video Utama" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-                        @if($video->bisindo_embed_url)
+                        @if($bisindoEmbedUrl)
                             <div class="absolute right-3 bottom-3 w-[38%] max-w-[280px] min-w-[160px] aspect-video rounded-xl overflow-hidden border-2 border-white/70 shadow-2xl">
-                                <iframe class="w-full h-full" src="{{ $video->bisindo_embed_url }}" title="Translate BISINDO" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                <iframe class="w-full h-full" src="{{ $bisindoEmbedUrl }}" title="Translate BISINDO" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                             </div>
                         @endif
 

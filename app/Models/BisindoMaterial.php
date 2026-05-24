@@ -11,7 +11,9 @@ class BisindoMaterial extends Model
         'kategori',
         'tingkat',
         'gambar_url',
+        'video_url',
         'deskripsi',
+        'sumber_jurnal',
         'is_active',
     ];
 }

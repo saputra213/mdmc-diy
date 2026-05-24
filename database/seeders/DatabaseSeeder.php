@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Barang;
 use App\Models\BarangKeluar;
 use App\Models\BarangMasuk;
-use App\Models\BisindoMaterial;
 use App\Models\BantuanRequest;
 use App\Models\DisasterEvent;
 use App\Models\DisasterEventPhoto;
@@ -280,21 +279,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        foreach ([
-            ['judul' => 'Isyarat Darurat', 'kategori' => 'Kebencanaan', 'tingkat' => 'Dasar'],
-            ['judul' => 'Isyarat Lokasi', 'kategori' => 'Kebencanaan', 'tingkat' => 'Dasar'],
-            ['judul' => 'Isyarat Medis', 'kategori' => 'Kesehatan', 'tingkat' => 'Menengah'],
-            ['judul' => 'Isyarat Distribusi', 'kategori' => 'Logistik', 'tingkat' => 'Menengah'],
-            ['judul' => 'Isyarat Evakuasi', 'kategori' => 'Kebencanaan', 'tingkat' => 'Lanjut'],
-        ] as $m) {
-            BisindoMaterial::create([
-                'judul' => $m['judul'],
-                'kategori' => $m['kategori'],
-                'tingkat' => $m['tingkat'],
-                'gambar_url' => 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=1200&q=80&sig=' . crc32($m['judul']),
-                'deskripsi' => 'Materi BISINDO untuk ' . strtolower($m['judul']) . '.',
-                'is_active' => true,
-            ]);
-        }
+        $this->call(BisindoMaterialSeeder::class);
     }
 }

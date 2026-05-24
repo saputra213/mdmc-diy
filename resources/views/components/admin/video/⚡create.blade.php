@@ -22,16 +22,63 @@ new class extends Component {
     {
         $this->validate();
 
+        $videoEmbedUrl = $this->normalizeEmbedUrl((string) $this->video_embed_url);
+        $bisindoEmbedUrl = $this->bisindo_embed_url ? $this->normalizeEmbedUrl((string) $this->bisindo_embed_url) : null;
+
         Video::create([
             'judul' => $this->judul,
             'deskripsi' => $this->deskripsi,
-            'video_embed_url' => $this->video_embed_url,
-            'bisindo_embed_url' => $this->bisindo_embed_url,
+            'video_embed_url' => $videoEmbedUrl,
+            'bisindo_embed_url' => $bisindoEmbedUrl,
             'is_active' => (bool) $this->is_active,
         ]);
 
         $this->dispatch('visual-feedback', message: 'Video berhasil ditambahkan!');
         return redirect('/admin/video');
+    }
+
+    private function normalizeEmbedUrl(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $value;
+        }
+
+        if (str_contains($value, 'youtube.com/embed/') || str_contains($value, 'youtube-nocookie.com/embed/')) {
+            return $value;
+        }
+
+        $parts = parse_url($value);
+        if (!is_array($parts)) {
+            return $value;
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+        $query = (string) ($parts['query'] ?? '');
+
+        if ($host === 'youtu.be') {
+            $id = trim($path, '/');
+            if ($id !== '') {
+                return 'https://www.youtube.com/embed/' . $id;
+            }
+        }
+
+        if ($host === 'www.youtube.com' || $host === 'youtube.com' || $host === 'm.youtube.com') {
+            if (str_starts_with($path, '/watch')) {
+                parse_str($query, $qs);
+                $id = (string) ($qs['v'] ?? '');
+                if ($id !== '') {
+                    return 'https://www.youtube.com/embed/' . $id;
+                }
+            }
+
+            if (preg_match('#^/shorts/([^/?]+)#', $path, $m)) {
+                return 'https://www.youtube.com/embed/' . $m[1];
+            }
+        }
+
+        return $value;
     }
 };
 ?>

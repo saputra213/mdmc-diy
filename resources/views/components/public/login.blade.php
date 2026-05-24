@@ -92,7 +92,7 @@ new class extends Component {
                     <p class="mt-2 text-xl font-extrabold text-slate-900">Ramah Tunarungu</p>
                 </div>
                 <div class="p-6 space-y-3 text-slate-600 font-semibold">
-                    <p>Gunakan fitur aksesibilitas untuk mengatur zoom, kontras, dan tipografi.</p>
+                    <p>Gunakan fitur aksesibilitas untuk mengakses web yang ramah tunarungu.</p>
                     <p>Untuk masyarakat umum, kembali ke beranda untuk mengakses menu publik.</p>
                 </div>
             </div>

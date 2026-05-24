@@ -350,13 +350,29 @@ new class extends Component {
                 <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                     @forelse($videos as $v)
                         @php
-                            $thumb = 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200&q=80&sig=' . ((int) $v->id * 11);
+                            $fallbackThumb = 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200&q=80&sig=' . ((int) $v->id * 11);
+                            $embed = trim((string) ($v->video_embed_url ?? ''));
+                            $videoId = null;
+
+                            if ($embed !== '') {
+                                if (preg_match('#youtube(?:-nocookie)?\.com/embed/([^?&/]+)#i', $embed, $m)) {
+                                    $videoId = $m[1];
+                                } elseif (preg_match('#youtu\.be/([^?&/]+)#i', $embed, $m)) {
+                                    $videoId = $m[1];
+                                } elseif (preg_match('#youtube\.com/watch\?[^#]*v=([^&]+)#i', $embed, $m)) {
+                                    $videoId = $m[1];
+                                } elseif (preg_match('#youtube\.com/shorts/([^?&/]+)#i', $embed, $m)) {
+                                    $videoId = $m[1];
+                                }
+                            }
+
+                            $thumb = $videoId ? ('https://i.ytimg.com/vi/' . $videoId . '/hqdefault.jpg') : $fallbackThumb;
                             $durations = ['04:15', '03:42', '05:10', '06:05', '02:58', '04:48'];
                             $duration = $durations[((int) $v->id) % count($durations)];
                         @endphp
                         <a href="/video/{{ $v->id }}" class="group bg-white border border-slate-100 rounded-3xl overflow-hidden hover:shadow-md transition-all">
                             <div class="relative aspect-video overflow-hidden">
-                                <img src="{{ $thumb }}" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <img src="{{ $thumb }}" onerror="this.onerror=null;this.src='{{ $fallbackThumb }}';" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                 <div class="absolute inset-0 bg-[#0B1635]/25"></div>
                                 <div class="absolute inset-0 flex items-center justify-center">
                                     <div class="w-12 h-12 rounded-full bg-white/85 backdrop-blur border border-white/50 flex items-center justify-center shadow-lg shadow-black/20">
